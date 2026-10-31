@@ -1,12 +1,17 @@
 const STORAGE_KEY = "todo-list-items";
+const THEME_STORAGE_KEY = "todo-theme";
 
 const form = document.querySelector("#todo-form");
 const input = document.querySelector("#todo-input");
 const list = document.querySelector("#todo-list");
 const emptyState = document.querySelector("#empty-state");
 const remainingCount = document.querySelector("#remaining-count");
+const themeToggle = document.querySelector("#theme-toggle");
+const filterButtons = Array.from(document.querySelectorAll(".filter-button"));
+const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
 let todos = loadTodos();
+let currentFilter = "all";
 
 function loadTodos() {
   try {
@@ -21,11 +26,85 @@ function saveTodos() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
 }
 
+function getInitialTheme() {
+  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+
+  if (savedTheme === "light" || savedTheme === "dark") {
+    return savedTheme;
+  }
+
+  return systemThemeQuery.matches ? "dark" : "light";
+}
+
+// 這裡用 localStorage 記住使用者的深色模式偏好。
+function applyTheme(theme, persist = false) {
+  document.documentElement.dataset.theme = theme;
+
+  const isDarkTheme = theme === "dark";
+  themeToggle.setAttribute("aria-pressed", String(isDarkTheme));
+  themeToggle.setAttribute(
+    "aria-label",
+    isDarkTheme ? "切換至淺色模式" : "切換至深色模式",
+  );
+  themeToggle.querySelector(".theme-toggle__icon").textContent = isDarkTheme ? "☀️" : "🌙";
+  themeToggle.querySelector(".theme-toggle__label").textContent = isDarkTheme ? "淺色模式" : "深色模式";
+
+  if (persist) {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }
+}
+
+function getFilteredTodos() {
+  if (currentFilter === "active") {
+    return todos.filter((todo) => !todo.completed);
+  }
+
+  if (currentFilter === "completed") {
+    return todos.filter((todo) => todo.completed);
+  }
+
+  return todos;
+}
+
+function updateEmptyState(filteredTodos) {
+  if (filteredTodos.length > 0) {
+    emptyState.hidden = true;
+    return;
+  }
+
+  emptyState.hidden = false;
+
+  if (todos.length === 0) {
+    emptyState.textContent = "還沒有任何待辦事項,新增一個吧!";
+    return;
+  }
+
+  if (currentFilter === "active") {
+    emptyState.textContent = "目前沒有未完成的待辦事項。";
+    return;
+  }
+
+  if (currentFilter === "completed") {
+    emptyState.textContent = "目前沒有已完成的待辦事項。";
+    return;
+  }
+
+  emptyState.textContent = "這個篩選條件目前沒有符合的項目。";
+}
+
+function renderFilterButtons() {
+  filterButtons.forEach((button) => {
+    const isActive = button.dataset.filter === currentFilter;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
 function renderTodos() {
   list.replaceChildren();
-  emptyState.hidden = todos.length > 0;
 
-  todos.forEach((todo) => {
+  const filteredTodos = getFilteredTodos();
+  filteredTodos.forEach((todo) => {
     const item = document.createElement("li");
     item.className = "todo-item";
     item.classList.toggle("is-completed", todo.completed);
@@ -61,6 +140,9 @@ function renderTodos() {
     list.append(item);
   });
 
+  renderFilterButtons();
+  updateEmptyState(filteredTodos);
+
   const remaining = todos.filter((todo) => !todo.completed).length;
   remainingCount.textContent = `未完成:${remaining} 項`;
 }
@@ -85,4 +167,27 @@ form.addEventListener("submit", (event) => {
   input.focus();
 });
 
+filterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    currentFilter = button.dataset.filter;
+    renderTodos();
+  });
+});
+
+themeToggle.addEventListener("click", () => {
+  const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(nextTheme, true);
+});
+
+systemThemeQuery.addEventListener("change", (event) => {
+  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+
+  if (savedTheme === "light" || savedTheme === "dark") {
+    return;
+  }
+
+  applyTheme(event.matches ? "dark" : "light");
+});
+
+applyTheme(getInitialTheme());
 renderTodos();
