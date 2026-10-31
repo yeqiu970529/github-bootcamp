@@ -6,9 +6,7 @@
 
 ## 線上展示
 
-**https://<你的帳號>.github.io/<你的repo名稱>/**
-
-> 請將上方網址替換成你實際的 GitHub Pages 網址。
+**https://yeqiu970529.github.io/github-bootcamp/**
 
 ## 功能
 
