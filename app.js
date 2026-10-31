@@ -1,5 +1,6 @@
 const STORAGE_KEY = "todo-list-items";
 const THEME_STORAGE_KEY = "todo-theme";
+const FILTER_STORAGE_KEY = "todo-filter";
 
 const form = document.querySelector("#todo-form");
 const input = document.querySelector("#todo-input");
@@ -11,7 +12,7 @@ const filterButtons = Array.from(document.querySelectorAll(".filter-button"));
 const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
 let todos = loadTodos();
-let currentFilter = "all";
+let currentFilter = getInitialFilter();
 
 function loadTodos() {
   try {
@@ -24,6 +25,16 @@ function loadTodos() {
 
 function saveTodos() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+}
+
+function getInitialFilter() {
+  const savedFilter = localStorage.getItem(FILTER_STORAGE_KEY);
+
+  if (savedFilter === "all" || savedFilter === "active" || savedFilter === "completed") {
+    return savedFilter;
+  }
+
+  return "all";
 }
 
 function getInitialTheme() {
@@ -170,6 +181,7 @@ form.addEventListener("submit", (event) => {
 filterButtons.forEach((button) => {
   button.addEventListener("click", () => {
     currentFilter = button.dataset.filter;
+    localStorage.setItem(FILTER_STORAGE_KEY, currentFilter);
     renderTodos();
   });
 });
